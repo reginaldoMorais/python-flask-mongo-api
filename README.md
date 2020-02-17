@@ -33,6 +33,17 @@ On macOs run:
 
 ## Running locally
 
+### Installing Virtualenv
+
+```bash
+> pip3 install virtualenv
+> cd python-mongo-api
+> virtualenv .venv
+> source .venv/bin/activate
+```
+
+### Running project
+
 ```bash
 > cd python-mongo-api
 > python3 app.py
