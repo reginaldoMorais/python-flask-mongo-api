@@ -64,6 +64,16 @@ def put(id):
     return page_not_found()
 
 
+@app.route('/users/<int:id>', methods=['DELETE'])
+def delete(id):
+    for idx, user in enumerate(users):
+        if user['id'] == id:
+            del users[idx]
+            return "", 204
+
+    return page_not_found()
+
+
 @app.errorhandler(400)
 def bad_request(e=None):
     if e:
