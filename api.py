@@ -42,6 +42,11 @@ def get(id):
 @validate_json("id", "name")
 def post():
     data = request.get_json()
+
+    for user in users:
+        if user['id'] == data['id']:
+            return bad_request("")
+
     users.append(data)
 
     return jsonify(users)
@@ -63,7 +68,8 @@ def put(id):
 def bad_request(e=None):
     if e:
         print(f'Error: {e}')
-    return jsonify({"Error": e}), 400
+        return jsonify({"Error": e}), 400
+    return "", 400
 
 
 @app.errorhandler(404)
