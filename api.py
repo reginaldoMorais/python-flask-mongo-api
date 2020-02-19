@@ -1,14 +1,17 @@
 import flask
 import json
 from flask import jsonify, request
+from flask_pymongo import PyMongo
 from functools import wraps
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
+app.config["MONGO_URI"] = "mongodb://localhost:27017/demo"
+mongo_client = PyMongo(app)
 
 
-users = json.loads(
-    '[{"id": 1, "name": "Reginaldo Morais"}, {"id": 2, "name": "John Doe"}]')
+# users = json.loads(
+#    '[{"id": 1, "name": "Reginaldo Morais"}, {"id": 2, "name": "John Doe"}]')
 
 
 def validate_json(*expected_args):
@@ -26,51 +29,48 @@ def validate_json(*expected_args):
 
 @app.route('/users', methods=['GET'])
 def list():
-    return jsonify(users)
+    users = [user for user in mongo_client.db.users.find()]
+    return jsonify(users), 200
 
 
 @app.route('/users/<int:id>', methods=['GET'])
 def get(id):
-    for user in users:
-        if user['id'] == id:
-            return jsonify(user)
-
+    user = mongo_client.db.users.find_one({"_id": id})
+    if (user):
+        return user, 200
     return page_not_found()
 
 
 @app.route('/users', methods=['POST'])
-@validate_json("id", "name")
+@validate_json("_id", "name")
 def post():
     data = request.get_json()
-
-    for user in users:
-        if user['id'] == data['id']:
-            return bad_request("")
-
-    users.append(data)
-
-    return jsonify(users)
+    user = mongo_client.db.users.find_one({"_id": data['_id']})
+    if user == None or user['_id'] != data['_id']:
+        userId = mongo_client.db.users.save(data)
+        return jsonify(mongo_client.db.users.find_one({"_id": userId})), 201
+    return bad_request()
 
 
 @app.route('/users/<int:id>', methods=['PUT'])
 @validate_json("name")
 def put(id):
     data = request.get_json()
-    for user in users:
-        if user['id'] == id:
-            user['name'] = data['name']
-            return jsonify(user)
-
+    user = mongo_client.db.users.find_one({"_id": id})
+    if user != None and user['_id'] == id:
+        user['name'] = data['name']
+        mongo_client.db.users.update_one(
+            {'_id': id}, {'$set': {'name': data['name']}})
+        return jsonify(mongo_client.db.users.find_one({"_id": id})), 200
     return page_not_found()
 
 
 @app.route('/users/<int:id>', methods=['DELETE'])
 def delete(id):
-    for idx, user in enumerate(users):
-        if user['id'] == id:
-            del users[idx]
-            return "", 204
-
+    user = mongo_client.db.users.find_one({"_id": id})
+    if user != None and user['_id'] == id:
+        db_response = mongo_client.db.users.delete_one({"_id": id})
+        return "", 204
     return page_not_found()
 
 
